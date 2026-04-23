@@ -1,0 +1,53 @@
+"""TileLang DSL template for pto.trowmax"""
+
+import sys
+from pathlib import Path
+import tilelang_dsl as pto
+
+@pto.vkernel(
+    target="a5",
+    op="pto.trowmax",
+    advanced=True,
+)
+def template_trowmax(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
+    dtype = dst.element_type
+    lanes = pto.get_lanes(dtype)
+    valid_rows, valid_cols = src.valid_shape
+
+    # Initialize with dtype-specific minimum value (aligned with pto-isa Padding<T>::Min)
+    if pto.constexpr(dtype == pto.f32):
+      init_val = pto.f32("0xFF7FFFFF")  # -FLT_MAX, IEEE 0xFF7FFFFF
+    elif pto.constexpr(dtype == pto.f16):
+      init_val = pto.f16("0xFBFF")  # -F16_MAX, IEEE 0xFBFF
+    elif pto.constexpr(dtype == pto.i32):
+      init_val = pto.i32(-2147483648)  # INT32_MIN
+    elif pto.constexpr(dtype == pto.i16):
+      init_val = pto.i16(-32768)  # INT16_MIN
+
+    for row in range(0, valid_rows, 1):
+        remained = valid_cols
+
+        mask_1, _ = pto.make_mask(dtype, 1)
+
+        # Initialize the accumulator for ROWMAX
+        v_acc = pto.vbr(init_val)
+
+        # Process column chunks
+        for col in range(0, valid_cols, lanes):
+            mask, remained = pto.make_mask(dtype, remained)
+            v_src = pto.vlds(src[row, col:])
+
+            # vcmax reduces src_dtype to acc_dtype
+            v_reduced = pto.vcmax(v_src, mask)
+
+            # Clear masked lanes to init_val for float types so vmax doesn't see NaN
+            if pto.constexpr(dtype == pto.f32):
+                v_reduced = pto.vsel(v_reduced, v_acc, mask)
+            if pto.constexpr(dtype == pto.f16):
+                v_reduced = pto.vsel(v_reduced, v_acc, mask)
+
+            v_acc = pto.vmax(v_acc, v_reduced, mask_1)
+
+        # Write final reduction to dest buffer once
+        pto.vsts(v_acc, dst[row, 0:], mask_1)
+    return

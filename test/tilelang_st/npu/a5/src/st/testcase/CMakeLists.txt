@@ -116,6 +116,12 @@ set(ALL_TESTCASES
     tadd
     tcvt
     tload
+    trowsum
+    trowmin
+    trowmax
+    trowprod
+    trowargmin
+    trowargmax
 )
 
 if((TEST_CASE IN_LIST ALL_TESTCASES) OR (TEST_CASE STREQUAL "all"))
