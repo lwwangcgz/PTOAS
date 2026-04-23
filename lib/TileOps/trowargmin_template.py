@@ -20,6 +20,10 @@ def template_trowargmin(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
         init_val = pto.f32("0x7F7FFFFF")  # FLT_MAX, IEEE 0x7F7FFFFF
     elif pto.constexpr(src_dtype == pto.f16):
         init_val = pto.f16("0x7BFF")  # F16_MAX, IEEE 0x7BFF
+    elif pto.constexpr(src_dtype == pto.si16):
+        init_val = pto.si16("0x7FFF")  # INT16_MAX
+    elif pto.constexpr(src_dtype == pto.si32):
+        init_val = pto.si32("0x7FFFFFFF")  # INT32_MAX
 
     for row in range(0, valid_rows, 1):
         remained = valid_cols
@@ -35,7 +39,6 @@ def template_trowargmin(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
         # Process all column chunks
         for col in range(0, valid_cols, lanes):
             mask, remained = pto.make_mask(src_dtype, remained)
-            mask_idx, _ = pto.make_mask(idx_dtype, remained)
             v_src = pto.vlds(src[row, col:])
             v_reduced = pto.vcmin(v_src, mask)
             
@@ -44,7 +47,7 @@ def template_trowargmin(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
 
             # Add absolute col offset to the chunk's local index
             col_offset = idx_dtype(col)
-            v_idx = pto.vadds(v_idx, col_offset, mask_idx)
+            v_idx = pto.vadds(v_idx, col_offset, mask_1_idx)
             
             # Compare current chunk min with global min so far
             cmp_mask = pto.vcmp(v_val_acc, v_val, mask_1, "gt")

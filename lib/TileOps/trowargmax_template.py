@@ -20,6 +20,10 @@ def template_trowargmax(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
         init_val = pto.f32("0xFF7FFFFF")  # -FLT_MAX, IEEE 0xFF7FFFFF
     elif pto.constexpr(src_dtype == pto.f16):
         init_val = pto.f16("0xFBFF")  # -F16_MAX, IEEE 0xFBFF
+    elif pto.constexpr(src_dtype == pto.si16):
+        init_val = pto.si16("0x8000")  # INT16_MIN
+    elif pto.constexpr(src_dtype == pto.si32):
+        init_val = pto.si32("0x80000000")  # INT32_MIN
 
     for row in range(0, valid_rows, 1):
         remained = valid_cols
@@ -35,7 +39,6 @@ def template_trowargmax(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
         # Process all column chunks
         for col in range(0, valid_cols, lanes):
             mask, remained = pto.make_mask(src_dtype, remained)
-            mask_idx, _ = pto.make_mask(idx_dtype, remained)
             v_src = pto.vlds(src[row, col:])
             v_reduced = pto.vcmax(v_src, mask)
             
@@ -44,7 +47,7 @@ def template_trowargmax(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
 
             # Add absolute col offset to the chunk's local index
             col_offset = idx_dtype(col)
-            v_idx = pto.vadds(v_idx, col_offset, mask_idx)
+            v_idx = pto.vadds(v_idx, col_offset, mask_1_idx)
             
             # Compare current chunk max with global max so far
             cmp_mask = pto.vcmp(v_val_acc, v_val, mask_1, "lt")
