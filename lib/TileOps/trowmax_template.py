@@ -20,9 +20,9 @@ def template_trowmax(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
     elif pto.constexpr(dtype == pto.f16):
       init_val = pto.f16("0xFBFF")  # -F16_MAX, IEEE 0xFBFF
     elif pto.constexpr(dtype == pto.i32):
-      init_val = pto.i32(-2147483648)  # INT32_MIN
+      init_val = pto.i32("0x80000000")  # INT32_MIN
     elif pto.constexpr(dtype == pto.i16):
-      init_val = pto.i16(-32768)  # INT16_MIN
+      init_val = pto.i16("0x8000")  # INT16_MIN
 
     for row in range(0, valid_rows, 1):
         remained = valid_cols

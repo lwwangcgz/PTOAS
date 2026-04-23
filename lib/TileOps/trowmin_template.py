@@ -21,9 +21,9 @@ def template_trowmin(src: pto.Tile, tmp: pto.Tile, dst: pto.Tile):
     elif pto.constexpr(dtype == pto.f16):
       init_val = pto.f16("0x7BFF")  # F16_MAX, IEEE 0x7BFF
     elif pto.constexpr(dtype == pto.i32):
-      init_val = pto.i32(2147483647)  # INT32_MAX
+      init_val = pto.i32("0x7FFFFFFF")  # INT32_MAX
     elif pto.constexpr(dtype == pto.i16):
-      init_val = pto.i16(32767)  # INT16_MAX
+      init_val = pto.i16("0x7FFF")  # INT16_MAX
 
     mask_1, _ = pto.make_mask(dtype, 1)
 
